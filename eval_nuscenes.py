@@ -274,13 +274,13 @@ def main(
         # val/test
         log_freq=100,
         shuffle=False,
-        dset='trainval', # we will just use val
-        batch_size=8,
+        dset='mini', # we will just use val
+        batch_size=1,
         nworkers=12,
         # data/log/load directories
         data_dir='../nuscenes/',
         log_dir='logs_eval_nuscenes_bevseg',
-        init_dir='checkpoints/rgb_model',
+        init_dir='checkpoints/8x5_5e-4_rgb12_22:43:46',
         ignore_load=None,
         # data
         res_scale=2,
@@ -294,7 +294,7 @@ def main(
         use_metaradar=False,
         do_rgbcompress=True,
         # cuda
-        device_ids=[4,5,6,7],
+        device_ids=[0],
 ):
     B = batch_size
     assert(B % len(device_ids) == 0) # batch size must be divisible by number of gpus

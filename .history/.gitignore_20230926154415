@@ -3,7 +3,7 @@ __pycache__
 build
 dist
 checkpoints
-*.egg-info
-.vscode
 logs_nuscenes_bevseg
 logs_eval_nuscenes_bevseg
+*.egg-info
+.vscode

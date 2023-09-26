@@ -299,6 +299,7 @@ class VanillaSelfAttention(nn.Module):
     def forward(self, query, query_pos=None):
         '''
         query: (B, N, C)
+        query: (B, N, C)
         '''
         inp_residual = query.clone()
 
@@ -341,8 +342,9 @@ class SpatialCrossAttention(nn.Module):
     def forward(self, query, key, value, query_pos=None, reference_points_cam=None, spatial_shapes=None, bev_mask=None):
         '''
         query: (B, N, C)
+        query_pos: (B, N, C) positional encoding
         key: (S, M, B, C)
-        reference_points_cam: (S, B, N, D, 2), in 0-1
+        reference_points_cam: (S, B, N, D, 2), in 0-1; (S, B, Z*X, Y, 2)
         bev_mask: (S. B, N, D)
         '''
         inp_residual = query
@@ -485,7 +487,7 @@ class Bevformernet(nn.Module):
 
         # rgb encoder
         device = rgb_camXs_.device
-        rgb_camXs_ = (rgb_camXs_ + 0.5 - self.mean.to(device)) / self.std.to(device)
+        rgb_camXs_ = (rgb_camXs_ + 0.5 - self.mean.to(device)) / self.std.to(device) # normalize the rgb values
         if self.rand_flip:
             B0, _, _, _ = rgb_camXs_.shape
             self.rgb_flip_index = np.random.choice([0,1], B0).astype(bool)
@@ -502,13 +504,17 @@ class Bevformernet(nn.Module):
 
         # compute the image locations (no flipping for now)
         xyz_mem_ = utils.basic.gridcloud3d(B0, Z, Y, X, norm=False, device=rgb_camXs.device) # B0, Z*Y*X, 3
+        # # transfer integers to camera coordinates
         xyz_cam0_ = vox_util.Mem2Ref(xyz_mem_, Z, Y, X, assert_cube=False)
-        xyz_camXs_ = utils.geom.apply_4x4(camXs_T_cam0_, xyz_cam0_)
-        xy_camXs_ = utils.geom.camera2pixels(xyz_camXs_, pix_T_cams_) # B0, N, 2
+        # # transfer to camera X coordinates
+        xyz_camXs_ = utils.geom.apply_4x4(camXs_T_cam0_, xyz_cam0_) # transfer to camera X coordinates
+        # # project points from 3d to pixels on the image plane using intrinsics
+        xy_camXs_ = utils.geom.camera2pixels(xyz_camXs_, pix_T_cams_) # B0, N, 2, where N=Z*Y*X
         xy_camXs = __u(xy_camXs_) # B, S, N, 2, where N=Z*Y*X
-        reference_points_cam = xy_camXs_.reshape(B, S, Z, Y, X, 2).permute(1, 0, 2, 4, 3, 5).reshape(S, B, Z*X, Y, 2)
+        reference_points_cam = xy_camXs_.reshape(B, S, Z, Y, X, 2).permute(1, 0, 2, 4, 3, 5).reshape(S, B, Z*X, Y, 2) # 6, 1, 200*200, 8, 2,
         reference_points_cam[..., 0:1] = reference_points_cam[..., 0:1] / float(W)
         reference_points_cam[..., 1:2] = reference_points_cam[..., 1:2] / float(H)
+        # # pixel to [0,1] format, filter out those outside of the image
         bev_mask = ((reference_points_cam[..., 1:2] > 0.0)
                     & (reference_points_cam[..., 1:2] < 1.0)
                     & (reference_points_cam[..., 0:1] < 1.0)

@@ -328,4 +328,7 @@ class MSDeformAttn3D(nn.Module):
         if not self.batch_first:
             output = output.permute(1, 0, 2)
 
+        if kwargs["output_offset"]:
+            return output, sampling_locations
+        
         return output

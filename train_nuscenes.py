@@ -5,6 +5,7 @@ import numpy as np
 import saverloader
 from fire import Fire
 from nets.segnet import Segnet
+from nets.bevformernet import Bevformernet
 import utils.misc
 import utils.improc
 import utils.vox
@@ -248,11 +249,11 @@ def main(
         max_iters=100000,
         log_freq=1000,
         shuffle=True,
-        dset='trainval',
+        dset='mini',
         do_val=True,
         val_freq=100,
         save_freq=1000,
-        batch_size=8,
+        batch_size=1,
         grad_acc=5,
         lr=3e-4,
         use_scheduler=True,
@@ -282,7 +283,7 @@ def main(
         do_rgbcompress=True,
         do_shuffle_cams=True,
         # cuda
-        device_ids=[0,1,2,3],
+        device_ids=[0],
     ):
 
     B = batch_size
@@ -359,7 +360,8 @@ def main(
 
     # set up model & seg loss
     seg_loss_fn = SimpleLoss(2.13).to(device) # value from lift-splat
-    model = Segnet(Z, Y, X, vox_util, use_radar=use_radar, use_lidar=use_lidar, use_metaradar=use_metaradar, do_rgbcompress=do_rgbcompress, encoder_type=encoder_type, rand_flip=rand_flip)
+    model = Bevformernet(Z,Y,X,rand_flip=rand_flip,encoder_type=encoder_type)
+    # model = Segnet(Z, Y, X, vox_util, use_radar=use_radar, use_lidar=use_lidar, use_metaradar=use_metaradar, do_rgbcompress=do_rgbcompress, encoder_type=encoder_type, rand_flip=rand_flip)
     model = model.to(device)
     model = torch.nn.DataParallel(model, device_ids=device_ids)
     parameters = list(model.parameters())

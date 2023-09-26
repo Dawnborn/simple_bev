@@ -98,7 +98,10 @@ def meshgrid2d(B, Y, X, stack=False, norm=False, device='cuda'):
         return grid_y, grid_x
     
 def meshgrid3d(B, Z, Y, X, stack=False, norm=False, device='cuda'):
-    # returns a meshgrid sized B x Z x Y x X
+    '''
+        returns a meshgrid sized B x Z x Y x X
+        integer format 
+    '''
 
     grid_z = torch.linspace(0.0, Z-1, Z, device=device)
     grid_z = torch.reshape(grid_z, [1, Z, 1, 1])
@@ -126,6 +129,9 @@ def meshgrid3d(B, Z, Y, X, stack=False, norm=False, device='cuda'):
 
 def gridcloud3d(B, Z, Y, X, norm=False, device='cuda'):
     # we want to sample for each location in the grid
+    '''
+        return grid from 0-X/Y/Z
+    '''
     grid_z, grid_y, grid_x = meshgrid3d(B, Z, Y, X, norm=norm, device=device)
     x = torch.reshape(grid_x, [B, -1])
     y = torch.reshape(grid_y, [B, -1])
